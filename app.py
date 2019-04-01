@@ -4,7 +4,7 @@
 # # DSAI HW1 Peak Load Forecasting
 # 請根據台電歷史資料，預測未來七天的"電力尖峰負載"(MW)
 
-# In[434]:
+# In[6]:
 
 
 import numpy as np
@@ -16,9 +16,10 @@ from keras.layers import Dense
 
 # ## Data Preprocessing
 
-# Read data
+# Read data and parser - 
+# 將CSV資料讀入後以逗號拆開，只取包含時間前4個feature
 
-# In[421]:
+# In[7]:
 
 
 def readfile(path):
@@ -42,20 +43,20 @@ def readfile(path):
     return return_tp_list, test_list
 
 
-# In[422]:
+# 取2017和2018年的資料
+
+# In[8]:
 
 
-#tp_2017  = pandas.read_csv('data/taipower_2017.csv')[:365]
-#tp_2018  = pandas.read_csv('data/taipower_2018.csv')[:365]
 tp_2017, target_2017_list = readfile('data/taipower_2017.csv')
 tp_2018, target_2018_list = readfile('data/taipower_2018.csv')
 
 #print(tp_2018)
 
 
-# Parser data to get the same week in last year and last week 
+# Parser data ，取去年同一時間和上一週的資料
 
-# In[423]:
+# In[12]:
 
 
 def sliceData(tp_data_2017, tp_data_2018):
@@ -99,15 +100,17 @@ def sliceData(tp_data_2017, tp_data_2018):
     return train_list
 
 
-# In[424]:
+# In[13]:
 
 
 train_X = sliceData(tp_2017, tp_2018)
-print(train_X[0])
-print(len(train_X[0]))
+#print(train_X[0])
+#print(len(train_X[0]))
 
 
-# In[425]:
+# 取得Training target，也就是training data中實際的尖峰負載預測值
+
+# In[14]:
 
 
 def getTrainY(target_list):
@@ -123,25 +126,19 @@ def getTrainY(target_list):
     return train_y_list
 
 
-# In[426]:
+# In[15]:
 
 
 train_Y = getTrainY(target_2018_list)
-#print(train_Y)
 np_train_X = np.array(train_X)
 np_train_Y = np.array(train_Y)
 
-# np_train_X = np_train_X[:,:,np.newaxis]
-# np_train_Y = np_train_X[:,:,np.newaxis]
 
-#np_train_X  = np.reshape(np_train_X , (1, np_train_X.shape[0], np_train_X.shape[1]))
-#np_train_Y  = np.reshape(np_train_Y , (1, np_train_Y.shape[0], np_train_Y.shape[1]))
-#n = np_train_X.reshape(52, 1, 42)
-#print(n.shape)
-#print(np_train_X.shape)
+# # Bulid Model
+# 以Keras開發，用NN概念實現Linear regression
+# 以多層Dense，最後一層output 1x7 向量代表整週的預測
 
-
-# In[427]:
+# In[17]:
 
 
 def bulidModel(x_shape):
@@ -152,27 +149,34 @@ def bulidModel(x_shape):
     return model
 
 
-# In[428]:
+# # Loss function
+# root_mean_squared_error
+
+# In[18]:
 
 
 def root_mean_squared_error(y_true, y_pred):
     return K.sqrt(K.mean(K.square(y_pred - y_true), axis=-1))
 
 
-# In[429]:
+# In[19]:
 
 
 LinearModel = bulidModel(np_train_X.shape)
 LinearModel.compile(loss=root_mean_squared_error, optimizer='rmsprop')
 
 
-# In[430]:
+# In[20]:
 
 
-train_history = LinearModel.fit(np_train_X , np_train_Y , batch_size=64 , epochs=1000 , verbose=1, validation_split=0.2)
+train_history = LinearModel.fit(np_train_X , np_train_Y , batch_size=128 , epochs=1000 , verbose=1, validation_split=0.2)
 
 
-# In[431]:
+# ## 產生 Predict 2019/04/02 ～ 2019/04/08 所需的Testing feature
+# 取 2018/04/02 ～ 2018/04/08 以及網站上的 2019/04/02前一週的資料
+# 但沒有2019/04/01所以用2018/04/01代替
+
+# In[23]:
 
 
 def getTestX(tp_2018):
@@ -193,18 +197,18 @@ def getTestX(tp_2018):
     return test_list
 
 
-# In[432]:
+# In[24]:
 
 
 testList = getTestX(tp_2018)
 test_2019_list = ['28756', '1887', '6.56', '29140', '1933', '6.63', '30093', '1892', '6.29', '29673', '2054', '6.92', '25810', '2155', '8.35', '24466', '2298', '9.39', '23895', '1655', '6.92']
 test_X = testList + test_2019_list
 np_test_X = np.array(test_X)
-print(test_X)
-print(len(test_X))
+#print(test_X)
+#print(len(test_X))
 
 
-# In[433]:
+# In[25]:
 
 
 #print(np_test_X.shape)
@@ -214,11 +218,11 @@ test_Y = LinearModel.predict(test)
 print(test_Y[0])
 
 
-# In[436]:
+# In[26]:
 
 
 def saveCSV(test_Y):
-    date = 20180402
+    date = 20190402
     d_list = []
     temp_list = []
     index = 0
@@ -232,8 +236,19 @@ def saveCSV(test_Y):
     return df
 
 
-# In[437]:
+# In[27]:
 
 
 df = saveCSV(test_Y[0])
 df.to_csv('submission.csv', index=0)
+
+
+# 2019.04.01
+# P76071200
+# 資工所 馬崇堯
+
+# In[ ]:
+
+
+
+
